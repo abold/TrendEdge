@@ -24,3 +24,8 @@ Cached data downloads
 One-click CSV export
 
 Notes & educational disclaimer
+
+Screenshots
+Main View
+## Screenshots
+![Main Screenshot](https://github.com/abold/TrendEdge/blob/main/assets/screenshot_main.png?raw=true)
