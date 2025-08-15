@@ -29,3 +29,7 @@ Screenshots
 Main View
 ## Screenshots
 ![Main Screenshot](assets/screenshot_main.png)
+
+
+**Live demo:** [trendedge.streamlit.app](https://trendedge.streamlit.app)  
+**Code:** [github.com/abold/TrendEdge](https://github.com/abold/TrendEdge)
