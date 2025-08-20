@@ -29,7 +29,7 @@ top_l, top_r = st.columns([1, 1])
 with top_l:
     st.markdown('<span class="pill">Python · Streamlit</span>', unsafe_allow_html=True)
     st.title("TrendEdge")
-    st.caption("Backtests, analytics, and research — mobile‑friendly dashboard.")
+    st.caption("Backtests, analytics, and research — mobile-friendly dashboard.")
 with top_r:
     pass  # reserved for future profile/settings
 
@@ -47,29 +47,40 @@ with st.sidebar:
 
 
 # ------------------ Helpers ------------------
-@st.cache_data(show_spinner=False, ttl=60 * 30)
-def fetch_prices(ticker: str, start: date | None, end: date | None) -> tuple[pd.Series, str | None]:
-    """Return adjusted close (or close) as a Series and an optional error message."""
+@st.cache_data(show_spinner=False, ttl=60*30)
+def fetch_prices(ticker: str, start: date | None, end: date | None) -> tuple[pd.DataFrame, str | None]:
+    """
+    Return a DataFrame with whatever Yahoo gives among:
+    Open, High, Low, Close, Adj Close, Volume.
+    Robust to missing 'Adj Close' or 'Close'.
+    """
     try:
-        start = start or None
-        end   = end or None
-
-        # Use auto_adjust so Close is adjusted if Adj Close is missing
+        kw = dict(auto_adjust=False, progress=False, threads=False)
         if start or end:
-            df = yf.download(ticker, start=start, end=end, auto_adjust=True, progress=False, threads=False)
+            df = yf.download(ticker, start=start or None, end=end or None, **kw)
         else:
-            df = yf.download(ticker, period="max", auto_adjust=True, progress=False, threads=False)
+            df = yf.download(ticker, period="max", **kw)
 
         if df is None or df.empty:
-            return pd.Series(dtype=float), "Empty dataframe from Yahoo (check ticker/dates/internet)."
+            return pd.DataFrame(), "Empty dataframe from Yahoo (check ticker/dates/internet)."
 
-        s = df["Adj Close"] if "Adj Close" in df.columns else df.get("Close")
-        if s is None or s.dropna().empty:
-            return pd.Series(dtype=float), "No Adj Close/Close column returned."
+        # keep only known columns that actually exist
+        cols = [c for c in ["Open", "High", "Low", "Close", "Adj Close", "Volume"] if c in df.columns]
+        if not cols:
+            return pd.DataFrame(), "No usable OHLC/Adj Close columns returned."
+        df = df[cols].copy()
 
-        return s.dropna(), None
+        # choose a 'close-like' series safely
+        close_series = df.get("Adj Close", df.get("Close"))
+        if close_series is None:
+            return pd.DataFrame(), "No Close or Adj Close column returned."
+
+        # drop rows where our chosen close is NaN (use its index to filter)
+        df = df.loc[close_series.dropna().index]
+
+        return df, None
     except Exception as e:
-        return pd.Series(dtype=float), f"{type(e).__name__}: {e}"
+        return pd.DataFrame(), f"{type(e).__name__}: {e}"
 
 
 def validate_params(fast: int, slow: int) -> list[str]:
@@ -82,6 +93,71 @@ def validate_params(fast: int, slow: int) -> list[str]:
         errs.append("Slow MA is too large (>500) for most symbols.")
     return errs
 
+
+def plot_candles(df: pd.DataFrame, ticker: str, cols=None) -> go.Figure:
+    """
+    df: DataFrame with OHLC columns (any names or even MultiIndex flattened)
+    """
+    cols = cols or {}
+
+    # robust column finder: works even if labels are tuples
+    def pick(name: str):
+        # explicit mapping takes priority
+        if name in cols:
+            return cols[name]
+        # exact case-insensitive match
+        for c in df.columns:
+            if str(c).lower() == name:
+                return c
+        # substring match (e.g., "('Open','SPY')" -> 'open')
+        for c in df.columns:
+            if name in str(c).lower():
+                return c
+        return None
+
+    open_col  = pick("open")
+    high_col  = pick("high")
+    low_col   = pick("low")
+    close_col = pick("close")
+
+    missing = [n for n, v in {"Open": open_col, "High": high_col, "Low": low_col, "Close": close_col}.items() if v is None]
+    if missing:
+        raise ValueError(f"plot_candles: missing columns: {', '.join(missing)}")
+
+    fig = go.Figure([
+        go.Candlestick(
+            x=df.index,
+            open=df[open_col],
+            high=df[high_col],
+            low=df[low_col],
+            close=df[close_col],
+            increasing_line_color="#22c55e",
+            decreasing_line_color="#ef4444",
+            name=f"{ticker} OHLC",
+        )
+    ])
+    fig.update_layout(
+        template="plotly_dark",
+        height=500,
+        margin=dict(l=30, r=20, t=10, b=30),
+        xaxis_title="Date",
+        yaxis_title="Price",
+        xaxis_rangeslider_visible=False,
+    )
+    return fig
+
+def flashy_metric(label, value, delta=None, color="violet"):
+    """Render a styled metric with flashy colors (uses CSS classes defined in theming.py)."""
+    st.markdown(
+        f"""
+        <div data-testid="stMetric">
+          <div data-testid="stMetricLabel"><div>{label}</div></div>
+          <div data-testid="stMetricValue"><div class="{color}">{value}</div></div>
+          {f'<div data-testid="stMetricDelta">{delta}</div>' if delta else ""}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 # ------------------ Tabs (Dashboard layout) ------------------
 tab_overview, tab_strategy, tab_research, tab_data, tab_settings = st.tabs(
@@ -101,50 +177,90 @@ else:
                 st.error(e)
         st.stop()
 
-    # Fetch data
-    px, err = fetch_prices(ticker, start if start else None, end if end else None)
-    if err or px.empty:
+    # Fetch data (DataFrame)
+    data, err = fetch_prices(ticker, start if start else None, end if end else None)
+    if err or data.empty:
         with tab_overview:
             st.error(f"No data found for that ticker/date range. {'' if err is None else 'Details: ' + err}")
         st.stop()
+    # If Yahoo returned MultiIndex columns (e.g., multiple tickers), pick the current ticker
+    if isinstance(data.columns, pd.MultiIndex):
+        # try last level as ticker first (yfinance usual: level0=field, level1=symbol)
+        if ticker in data.columns.get_level_values(-1):
+            data = data.xs(ticker, axis=1, level=-1)
+        elif ticker in data.columns.get_level_values(0):
+            data = data.xs(ticker, axis=1, level=0)
+        else:
+            # fallback to first available symbol
+            first_sym = data.columns.get_level_values(-1)[0]
+            data = data.xs(first_sym, axis=1, level=-1)
 
-    # Ensure enough data for both MAs
+    # pick price series for MA/backtest (prefer Adj Close if present)
+    px = data.get("Adj Close", data.get("Close")).dropna()
+
+    # build OHLC for candlesticks (real if available; else synthesize from px)
+    if all(c in data.columns for c in ["Open", "High", "Low", "Close"]):
+        ohlc = data[["Open", "High", "Low", "Close"]].copy()
+        # align to px index in case some rows were dropped by px
+        ohlc = ohlc.reindex(px.index).dropna()
+    else:
+        c = px
+        ohlc = pd.DataFrame(index=c.index)
+        ohlc["Open"]  = c.shift(1).fillna(c)
+        ohlc["High"]  = pd.concat([ohlc["Open"], c], axis=1).max(axis=1)
+        ohlc["Low"]   = pd.concat([ohlc["Open"], c], axis=1).min(axis=1)
+        ohlc["Close"] = c
+
+    # Ensure enough data for MAs
     if len(px) < max(int(fast), int(slow)) + 5:
         with tab_overview:
             st.warning("Not enough data after the chosen start/end to compute both moving averages.")
         st.stop()
 
     with st.spinner("Running backtest…"):
-        # ---- Robust casting/alignment to avoid DataFrame 'scalar' errors ----
-        # Price to Series
-        if isinstance(px, pd.DataFrame):
-            if "Adj Close" in px.columns:
-                px = px["Adj Close"]
-            elif "Close" in px.columns:
-                px = px["Close"]
-            else:
-                px = px.iloc[:, 0]
-        px = pd.Series(px).dropna()
+        sig_raw = ma_signals(px, int(fast), int(slow))
 
-        # Signals (ensure Series aligned to the price index)
-        sig_df = ma_signals(px, int(fast), int(slow))
-        if isinstance(sig_df, pd.DataFrame):
-            sig = sig_df["signal"] if "signal" in sig_df.columns else sig_df.iloc[:, 0]
+        # If a tuple was returned (e.g., (signals, extra)), take the first element
+        if isinstance(sig_raw, tuple) and len(sig_raw) > 0:
+            sig_raw = sig_raw[0]
+
+        if isinstance(sig_raw, pd.Series):
+            sig = sig_raw
+        elif isinstance(sig_raw, pd.DataFrame):
+            # Prefer a 'signal' column; otherwise take the first column
+            sig = sig_raw["signal"] if "signal" in sig_raw.columns else sig_raw.iloc[:, 0]
         else:
-            sig = sig_df
+            # NumPy array / list / other -> flatten to 1-D
+            arr = np.asarray(sig_raw).squeeze()
+            if arr.ndim != 1:
+                raise ValueError(f"ma_signals returned array with shape {arr.shape}, expected 1-D")
+            # Align to px index (handle length mismatches gracefully)
+            idx = px.index
+            if len(arr) == len(idx):
+                sig = pd.Series(arr, index=idx)
+            else:
+                # place shorter arrays at the end (most common for indicator lookbacks)
+                sig = pd.Series(arr, index=idx[-len(arr):]).reindex(idx)
+
+        # Final cleanup/alignment
         sig = pd.Series(sig).reindex(px.index).fillna(0)
 
-        # Backtest (now receives clean Series)
-        res = run_backtest(px, sig)  # expect columns: eq_strategy, eq_buyhold, ret_strategy, ...
+        res = run_backtest(px, sig)
+
 
     # ------------------ Overview ------------------
     with tab_overview:
         k1, k2, k3, k4 = st.columns(4)
         mdd_val, dd_series = max_drawdown(res["eq_strategy"])
-        k1.metric("CAGR (Strategy)",  f"{cagr(res['eq_strategy']):.2%}")
-        k2.metric("CAGR (Buy & Hold)", f"{cagr(res['eq_buyhold']):.2%}")
-        k3.metric("Sharpe",            f"{sharpe(res['ret_strategy']):.2f}")
-        k4.metric("Max Drawdown",      f"{mdd_val:.2%}")
+
+        with k1:
+            flashy_metric("CAGR (Strategy)",  f"{cagr(res['eq_strategy']):.2%}", color="green")
+        with k2:
+            flashy_metric("CAGR (Buy & Hold)", f"{cagr(res['eq_buyhold']):.2%}", color="violet")
+        with k3:
+            flashy_metric("Sharpe",            f"{sharpe(res['ret_strategy']):.2f}", color="green")
+        with k4:
+            flashy_metric("Max Drawdown",      f"{mdd_val:.2%}", color="red")
 
         st.divider()
 
@@ -189,6 +305,10 @@ else:
             use_container_width=True
         )
 
+        st.subheader(f"{ticker} Candlestick Chart")
+        st.plotly_chart(plot_candles(ohlc, ticker), use_container_width=True)
+        st.caption(f"Data source: Yahoo Finance — {ticker}")
+
     # ------------------ Strategy ------------------
     with tab_strategy:
         st.write("**Signals preview** (1 = long, 0 = flat):")
@@ -202,7 +322,7 @@ else:
 
     # ------------------ Research (ML) ------------------
     with tab_research:
-        st.caption("Prototype: simple ML classification of next‑day up/down based on MA features.")
+        st.caption("Prototype: simple ML classification of next-day up/down based on MA features.")
         df = pd.DataFrame({"close": px})
         df["ret1"] = df["close"].pct_change()
         df[f"ma{int(fast)}"] = df["close"].rolling(int(fast)).mean()
@@ -254,4 +374,3 @@ with st.expander("Notes & Disclaimer"):
 - Past performance does **not** guarantee future results. Educational use only.
         """
     )
-
