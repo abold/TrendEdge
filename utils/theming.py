@@ -126,6 +126,31 @@ def apply_base_css():
           background: rgba(139,92,246,.18); border:1px solid rgba(139,92,246,.5);
           color:{PALETTE['text']}; font-size:.8rem;
         }}
+         /* ===== Mobile overrides ===== */
+        @media (max-width: 640px) {{
+          h1, .stMarkdown h1 {{ font-size: 1.4rem; }}
+          h2, .stMarkdown h2 {{ font-size: 1.2rem; }}
+          .block-container {{ padding: 0.5rem 0.8rem; }}
+          .stButton > button {{ padding: 0.5rem 0.8rem !important; font-size: 0.9rem; }}
+          html, body {{ overflow-x: hidden; }}     /* no sideways scroll */
+
+          /* Sidebar: take full width when opened on mobile */
+          [data-testid="stSidebar"] {{ width: 100% !important; }}
+
+          /* Charts: FORCE full width */
+          .stPlotlyChart,
+          .stPlotlyChart > div,
+          .stPlotlyChart .js-plotly-plot,
+          .stPlotlyChart .plot-container,
+          .stPlotlyChart canvas {{
+            width: 100% !important;
+            max-width: 100% !important;
+          }}
+          .stPlotlyChart {{ margin-left: 0 !important; margin-right: 0 !important; }}
+
+          /* DataFrames: full width + softer padding */
+          .stDataFrame {{ width: 100% !important; }}
+          }}
         </style>
         """,
         unsafe_allow_html=True,
@@ -134,3 +159,5 @@ def apply_base_css():
     # Plotly template stays the same
     pio.templates["te_dark"] = PLOTLY_TEMPLATE
     pio.templates.default = "te_dark"
+
+
