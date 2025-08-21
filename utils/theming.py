@@ -1,5 +1,4 @@
 # utils/theming.py
-from turtle import width
 import streamlit as st
 import plotly.io as pio
 
