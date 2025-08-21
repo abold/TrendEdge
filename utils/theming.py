@@ -35,7 +35,7 @@ def apply_base_css():
         <style>
         /* ===== Global font scaling ===== */
         html, body {{
-          font-size: 1.6rem !important;   /* ~6% larger overall */
+          font-size: 1.4rem !important;   /* ~6% larger overall */
           line-height: 1.6 !important;
         }}
 
