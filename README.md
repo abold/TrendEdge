@@ -28,7 +28,7 @@ Notes & educational disclaimer
 Screenshots
 Main View
 ## Screenshots
-![Main Screenshot](assets/screenshot_main.png)
+![Main Screenshot](assets/trendedge.png)
 
 
 **Live demo:** [trendedge.streamlit.app](https://trendedge.streamlit.app)  
