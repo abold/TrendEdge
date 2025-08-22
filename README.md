@@ -63,4 +63,26 @@ Main View
 
 **How to read it:** Higher is better. Compare your **Strategy CAGR** vs **Buy-&-Hold CAGR** to judge value added.
 - **CAGR:** annualized growth rate assuming smooth compounding; makes runs of different lengths comparable.
+## CAGR — Strategy vs. Buy & Hold
 
+**Strategy CAGR:** Annualized growth of the **strategy’s equity curve** (`eq_strategy`).  
+Reflects being in/out of the market per the moving-average signals, with **next-bar execution** and **no fees/slippage**.
+
+**Buy-&-Hold CAGR:** Annualized growth if you **buy at the start and hold to the end** (`eq_buyhold`).  
+Uses **Adjusted Close** when available (so dividends/splits are included).
+
+**Why show both?**  
+Puts the strategy’s return on the same per-year scale as a simple benchmark. If Strategy CAGR > Buy-&-Hold CAGR, the rules outperformed buy-and-hold over this date range (pair with Sharpe & Max Drawdown to judge risk).
+
+**How it’s computed**
+*Both curves are normalized to the same starting value so the comparison is fair.*
+
+**Example**
+- Start capital = 100  
+- Strategy ends at 180 after 3.0 years → `CAGR_strategy = (180/100)^(1/3) − 1 ≈ 22.9%`  
+- Buy-&-Hold ends at 150 after 3.0 years → `CAGR_bh = (150/100)^(1/3) − 1 ≈ 14.5%`
+
+**Notes**
+- Same ticker and date range for both.
+- Strategy is flat (0% return) when out of the market.
+- Transaction costs, slippage, and taxes are **not** included (educational use).
