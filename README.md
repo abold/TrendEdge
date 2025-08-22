@@ -21,7 +21,6 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 **Features**
-- Bullet item
   - MA crossover signals with next-bar execution (no look-ahead).
 
   - Equity curves: Strategy vs Buy & Hold.
@@ -42,7 +41,7 @@ streamlit run app.py
 
   - Notes & educational disclaimer included.
   
-- Another item
+
 
 
 **Screenshots**
