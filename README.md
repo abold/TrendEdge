@@ -50,6 +50,44 @@ Main View
 ![Main Screenshot](assets/trendedge.png)
 
 **Each term is explained below:**
+
+## Backtesting — What the app does
+
+The app evaluates a **moving-average (MA) crossover** strategy against a simple **Buy-&-Hold** baseline on any Yahoo Finance ticker.
+
+### 1) Data
+- Downloads OHLC/Adj Close from **Yahoo Finance** via `yfinance`.
+- Prefers **Adjusted Close** for returns (dividends/splits included).
+- Handles missing values and multi-symbol columns; caches data for faster reruns.
+
+### 2) Signals (fast vs slow MA)
+- Compute two simple moving averages: **MA_fast** and **MA_slow** (with `fast < slow`).
+- **Signal rule:**  
+  - `1` (long) when `MA_fast > MA_slow`  
+  - `0` (flat) otherwise  
+- Signals are **shifted by one bar** → trades happen **next day** (no look-ahead bias).
+
+### 3) Execution & returns
+- Single-asset, **long/flat** only (no short, no leverage).
+- When flat, daily return is **0%**; when long, you earn the asset’s daily return.
+
+
+### 4) Equity curves & metrics
+- Start both curves from the same value (e.g., 100).
+- Cumulate returns to form:
+- `eq_strategy` (your rules)  
+- `eq_buyhold` (always invested)
+- Report **CAGR**, **Sharpe (√252, rf≈0)**, and **Max Drawdown** from these curves.
+
+### 5) Visuals & export
+- **Price + MAs**, **Equity Curves**, **Candlestick**, and a **Signals preview** table.
+- **One-click CSV** export with equity lines and signals.
+
+### Assumptions & limits
+- **Next-day execution**, **no transaction costs**, **no slippage**, **no taxes**.
+- Educational use only; past performance ≠ future results.
+
+
 ### CAGR — Compound Annual Growth Rate
 
 **What it is:** The steady yearly rate that would turn your **starting equity** into your **ending equity** if growth were perfectly smooth.
