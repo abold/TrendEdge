@@ -47,6 +47,30 @@ streamlit run app.py
 
 **Each term is explained below:**
 
+## What are the Fast and Slow MAs?
+
+**Moving Averages (MAs)** smooth price by averaging the last *N* bars.
+
+- **Fast MA** = short lookback (reacts quickly, more signals/whipsaws).  
+  *In this app the default is `20` (20 trading days).*
+- **Slow MA** = long lookback (smoother, slower to react).  
+  *Default is `50`.*
+
+**How we compute them (Simple MAs):**
+*(In code: `px.rolling(fast).mean()` and `px.rolling(slow).mean()`.)*
+
+**Signal rule used in TrendEdge:**
+- Go **long** when `SMA_fast > SMA_slow`
+- Go **flat** when `SMA_fast ≤ SMA_slow`
+- Trades execute on the **next bar** (no look-ahead).
+
+**Typical pairs:** `10/50`, `20/50` (default), `50/200`  
+- Shorter pairs → quicker entries/exits, more noise.  
+- Longer pairs → fewer trades, larger lag but smoother equity.
+
+**Notes:** `fast` must be **<** `slow`. Strategy ignores fees/slippage and is for education only.
+
+
 ## Backtesting — What the app does
 
 The app evaluates a **moving-average (MA) crossover** strategy against a simple **Buy-&-Hold** baseline on any Yahoo Finance ticker.
