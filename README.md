@@ -49,7 +49,7 @@ Main View
 ## Screenshots
 ![Main Screenshot](assets/trendedge.png)
 
-** Each term is explained below:**
+**Each term is explained below:**
 ### CAGR — Compound Annual Growth Rate
 
 **What it is:** The steady yearly rate that would turn your **starting equity** into your **ending equity** if growth were perfectly smooth.
