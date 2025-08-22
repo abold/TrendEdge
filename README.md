@@ -58,3 +58,9 @@ Main View
 
 **Formula:**
 
+**Example:** Start = 100, End = 150, Years = 3  
+`CAGR = (150/100)^(1/3) − 1 ≈ 14.47%`
+
+**How to read it:** Higher is better. Compare your **Strategy CAGR** vs **Buy-&-Hold CAGR** to judge value added.
+
+
