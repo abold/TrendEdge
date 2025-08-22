@@ -2,7 +2,7 @@
 
 Interactive Streamlit app to explore moving-average crossover strategies with clean visuals, key metrics, and CSV export.
 
-## Quickstart - if you want to run the app locally
+## Quickstart - if you want to run the app locally :rocket:
 ```bash
 # 1) Create & activate a venv (Python 3.11 recommended)
 python -m venv .venv
