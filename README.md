@@ -42,10 +42,6 @@ streamlit run app.py
   - Notes & educational disclaimer included.
   
 
-
-
-**Screenshots**
-Main View
 ## Screenshots
 ![Main Screenshot](assets/trendedge.png)
 
