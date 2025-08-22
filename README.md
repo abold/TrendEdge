@@ -2,6 +2,9 @@
 
 Interactive Streamlit app to explore moving-average crossover strategies with clean visuals, key metrics, and CSV export.
 
+**Live demo:** [trendedge.streamlit.app](https://trendedge.streamlit.app)  
+**Code:** [github.com/abold/TrendEdge](https://github.com/abold/TrendEdge)
+
 ## Quickstart - if you want to run the app locally :rocket:
 ```bash
 # 1) Create & activate a venv (Python 3.11 recommended)
@@ -34,12 +37,11 @@ streamlit run app.py
   - Cached data downloads (faster reruns).
 
   - One-click CSV export of results.
-
-  - Notes & educational disclaimer included.
-    
+ 
   - (Optional prototype in the app: simple ML classifier for P(up next day).)
 
-  - Notes & educational disclaimer
+  - Notes & educational disclaimer included.
+  
 - Another item
 
 
@@ -48,6 +50,3 @@ Main View
 ## Screenshots
 ![Main Screenshot](assets/trendedge.png)
 
-
-**Live demo:** [trendedge.streamlit.app](https://trendedge.streamlit.app)  
-**Code:** [github.com/abold/TrendEdge](https://github.com/abold/TrendEdge)
